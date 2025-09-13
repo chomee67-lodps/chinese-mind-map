@@ -30,8 +30,12 @@ const lessonData  = [
                             {
                                 text: '作業過程',
                                 children: [
-                                    { text: '井然有序' },
-                                    { text: '動作不熟練卻準確無誤' }
+                                    { 
+										text: '井然有序' 
+									},
+                                    {
+										text: '動作不熟練卻準確無誤' 
+									}
                                 ]
                             }
                         ]                        
@@ -42,9 +46,15 @@ const lessonData  = [
                             {
                                 text: '遇見小師傅成功',
                                 children: [
-                                    { text: '精確、完善工作態度' },
-                                    { text: '服務精神' },
-                                    { text: '累積長久經驗' }
+                                    { 
+										text: '精確、完善工作態度' 
+									},
+                                    { 
+										text: '服務精神' 
+									},
+                                    { 
+										text: '累積長久經驗' 
+									}
 
                                 ]
                             }
@@ -56,37 +66,22 @@ const lessonData  = [
                             {
                                 text: '現代人錯誤想法',
                                 children: [
-                                    { text: '講求快速' },
-                                    { text: '不顧周全與體貼' },
-                                    { text: '不留後路' }
+                                    { 
+										text: '講求快速'
+									},
+                                    { 
+										text: '不顧周全與體貼' 
+									},
+                                    {
+										text: '不留後路' 
+									}
 
                                 ]
                             }
                         ]                        
-                    },
-                    {
-                        text: '服務精神',
-                        children: [
-                            {
-                                text: '資深師傅',
-                                children: [
-					{ text: '技高人散漫' },
-					{ text: '不關我事' }
-				]
-                            },
-                            {
-                                text: '小師傅',
-                                children: [
-					{ text: '重視顧客的口碑' },
-					{ text: '頭尾都顧到' }
-				]
-                            }
-                        ]
                     }
-
-
-                ]
-            }
+				]
+			}
         ];
 
 </script>
