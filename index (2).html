@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國語課文心智圖測驗版</title>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100vw;
+            position: relative;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #007BFF;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            flex: 1; /* Make main content fill available vertical space */
+            align-items: stretch;
+        }
+
+        .mind-map-container {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: fit-content;
+            max-width: 95vw;
+            position: relative;
+            flex: 1;
+            overflow: auto; /* Allow internal scrolling if content overflows */
+            max-height: calc(100vh - 100px); /* Adjust based on control panel height */
+        }
+        
+        .mind-map-tree {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+        }
+
+        .node-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            position: relative;
+        }
+
+        .node-content {
+            padding: 8px 12px;
+            margin: 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.5s;
+            position: relative;
+            z-index: 1;
+            min-width: 100px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .node-content:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .node-level-1 {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 18px;
+        }
+
+        .node-level-2 {
+            background-color: #2196F3;
+            color: white;
+            font-size: 16px;
+        }
+
+        .node-level-3 {
+            background-color: #FFC107;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .node-level-4 {
+            background-color: #9E9E9E;
+            color: white;
+            font-size: 12px;
+        }
+        
+        /* 測驗模式專用樣式 */
+        .quiz-mode .node-level-4 {
+            background-color: #eee;
+            color: transparent; /* 隱藏文字 */
+            min-width: 120px;
+            border: 2px dashed #999;
+            cursor: default;
+        }
+        .quiz-mode .node-level-4:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .node-children {
+            list-style: none;
+            padding-left: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.5s ease-out;
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .node-children.expanded {
+            max-width: 500px;
+            opacity: 1;
+        }
+        
+        .node-content.expandable:before {
+            content: '+';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #555;
+        }
+        
+        .node-content.expanded:before {
+            content: '-';
+        }
+
+        /* D3.js 繪製的線條樣式 */
+        .link {
+            fill: none;
+            stroke: #000;
+            stroke-width: 3px;
+        }
+
+        .word-bank {
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            flex: 1;
+            align-content: flex-start;
+            overflow-y: auto; /* Allow internal scrolling if content overflows */
+            max-height: calc(100vh - 100px); /* Adjust based on control panel height */
+        }
+
+        .word-bank .draggable-word {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: #337ab7;
+            color: white;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+        }
+
+        .correct {
+            background-color: #4CAF50 !important;
+            color: white !important;
+            border-color: #4CAF50 !important;
+        }
+
+        .incorrect {
+            background-color: #f44336 !important;
+            color: white !important;
+            border-color: #f44336 !important;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <!-- 載入 jQuery 和 D3.js -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- 載入 Google Drive 上的心智圖內容 -->
+   
+	<script src="lesson1.js"></script>
+</head>
+<body>
+
+<div class="controls">
+    <button id="modeToggleBtn">進入測驗模式</button>
+    <button id="checkAnswersBtn" style="display: none;" disabled>確認答案</button>
+</div>
+
+<div class="main-content">
+    <div class="mind-map-container">
+        <div class="mind-map">
+            <svg id="mindMapSVG" width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;"></svg>
+            <ul id="mindMapTree" class="mind-map-tree"></ul>
+        </div>
+    </div>
+
+    <div id="wordBank" class="word-bank" style="display: none;"></div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        let isQuizMode = false;
+        let quizAnswers = [];
+        let mindMapData = [];
+        
+        // 確保 lessonData 已被載入，否則使用空陣列作為備用
+        console.log('心智圖資料載入狀態:', typeof lessonData);
+        const originalData = typeof lessonData !== 'undefined' ? lessonData : [];
+
+        // 遞迴函數來產生心智圖的 HTML
+        function renderMindMap(data, parentElement, level, parentId = null) {
+            data.forEach((node, index) => {
+                const nodeId = (parentId ? parentId + '-' : '') + index;
+                node.id = nodeId;
+
+                const hasChildren = node.children && node.children.length > 0;
+                let nodeContent;
+
+                if (isQuizMode && !hasChildren) {
+                    nodeContent = $('<div>').addClass(`node-content node-level-${level} empty-box`)
+                                            .attr('data-id', nodeId)
+                                            .attr('data-correct-text', node.text)
+                                            .attr('ondrop', 'event.preventDefault(); drop(event);')
+                                            .attr('ondragover', 'allowDrop(event);')
+                                            .text('　'); // 測驗模式下清空文字
+                } else {
+                    nodeContent = $('<div>').text(node.text)
+                                            .addClass(`node-content node-level-${level}`)
+                                            .attr('id', 'node-' + nodeId)
+                                            .attr('ondrop', 'event.preventDefault(); drop(event);')
+                                            .attr('ondragover', 'allowDrop(event);');
+                }
+                
+                if (hasChildren) {
+                    nodeContent.addClass('expandable expanded');
+                }
+
+                const nodeChildrenList = $('<ul>').addClass('node-children');
+                if (hasChildren) {
+                    nodeChildrenList.addClass('expanded');
+                }
+
+                const nodeWrapper = $('<div>').addClass('node-wrapper');
+                
+                nodeWrapper.append(nodeContent);
+                if (hasChildren) {
+                    nodeWrapper.append(nodeChildrenList);
+                }
+
+                const listItem = $('<li>').append(nodeWrapper);
+                parentElement.append(listItem);
+
+                if (hasChildren) {
+                    renderMindMap(node.children, nodeChildrenList, level + 1, nodeId);
+                }
+            });
+        }
+        
+        // 繪製線條的函數
+        function drawLinks() {
+            const svg = d3.select("#mindMapSVG");
+            const containerRect = $('.mind-map-container')[0].getBoundingClientRect();
+            
+            svg.attr("width", containerRect.width)
+               .attr("height", containerRect.height);
+
+            svg.selectAll(".link").remove();
+
+            // 尋找所有節點，並只繪製與其子節點的線條
+            $('.node-content').each(function() {
+                const parentNode = $(this);
+                const parentId = parentNode.attr('id');
+                const parentRect = parentNode[0].getBoundingClientRect();
+                
+                const childrenNodes = parentNode.closest('.node-wrapper').children('.node-children').children('li').children('.node-wrapper').children('.node-content');
+                
+                childrenNodes.each(function() {
+                    const childNode = $(this);
+                    const childRect = childNode[0].getBoundingClientRect(); // FIX: 從 jQuery 物件取得原生 DOM 物件
+                    
+                    const startX = parentRect.right - containerRect.left;
+                    const startY = parentRect.top + parentRect.height / 2 - containerRect.top;
+                    const endX = childRect.left - containerRect.left;
+                    const endY = childRect.top + childRect.height / 2 - containerRect.top;
+                    
+                    svg.append("path")
+                       .attr("class", "link")
+                       .attr("d", `M${startX},${startY} L${startX + 20},${startY} V${endY} H${endX}`);
+                });
+            });
+        }
+
+        // 提取並洗牌最後一層的節點內容
+        function prepareQuiz() {
+            quizAnswers = [];
+            function extractLastLevel(nodes) {
+                nodes.forEach(node => {
+                    if (node.children && node.children.length > 0) {
+                        extractLastLevel(node.children);
+                    } else {
+                        quizAnswers.push(node.text);
+                    }
+                });
+            }
+            extractLastLevel(mindMapData);
+            
+            // 洗牌
+            for (let i = quizAnswers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [quizAnswers[i], quizAnswers[j]] = [quizAnswers[j], quizAnswers[i]];
+            }
+        }
+
+        // 渲染題庫
+        function renderWordBank() {
+            const wordBankContainer = $('#wordBank');
+            wordBankContainer.empty();
+            quizAnswers.forEach(word => {
+                $('<div>').addClass('draggable-word')
+                          .attr('draggable', 'true')
+                          .attr('ondragstart', 'drag(event)')
+                          .attr('data-text', word)
+                          .text(word)
+                          .appendTo(wordBankContainer);
+            });
+            wordBankContainer.show();
+        }
+
+        // 更新確認答案按鈕狀態
+        function updateCheckButtonState() {
+            const totalBoxes = $('.empty-box').length;
+            const filledBoxes = $('.empty-box').filter(function() {
+                return $(this).data('dropped-text');
+            }).length;
+            
+            if (totalBoxes > 0 && totalBoxes === filledBoxes) {
+                $('#checkAnswersBtn').prop('disabled', false);
+            } else {
+                $('#checkAnswersBtn').prop('disabled', true);
+            }
+        }
+
+        // 進入測驗模式
+        function enterQuizMode() {
+            isQuizMode = true;
+            $('#modeToggleBtn').text('結束測驗');
+            $('#checkAnswersBtn').show();
+            
+            // 複製資料，以便在測驗模式下修改
+            mindMapData = JSON.parse(JSON.stringify(originalData));
+
+            prepareQuiz();
+            renderAll();
+            renderWordBank();
+            updateCheckButtonState(); // 進入測驗模式後立即檢查狀態
+        }
+
+        // 結束測驗模式
+        function exitQuizMode() {
+            isQuizMode = false;
+            $('#modeToggleBtn').text('進入測驗模式');
+            $('#checkAnswersBtn').hide();
+            $('#wordBank').hide();
+            $('.node-content').removeClass('correct incorrect');
+
+            // 恢復原始資料
+            mindMapData = originalData;
+            renderAll();
+        }
+
+        // 渲染函數，包含所有步驟
+        function renderAll() {
+            $('#mindMapTree').empty();
+            renderMindMap(mindMapData, $('#mindMapTree'), 1);
+            
+            // 等待 DOM 更新完成後再繪製線條
+            setTimeout(drawLinks, 100);
+
+            // 根據模式啟用或禁用點擊事件
+            if (isQuizMode) {
+                $('#mindMapTree').off('click');
+            } else {
+                $('#mindMapTree').on('click', '.expandable', function() {
+                    $(this).siblings('.node-children').toggleClass('expanded');
+                    $(this).toggleClass('expanded');
+                    setTimeout(drawLinks, 500);
+                });
+            }
+        }
+        
+        // 拖曳事件處理
+        window.allowDrop = function(ev) {
+            ev.preventDefault();
+        }
+        window.drag = function(ev) {
+            ev.dataTransfer.setData("text", ev.target.dataset.text);
+        }
+        window.drop = function(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggableElement = $(`.draggable-word[data-text='${data}']`)[0];
+            const targetElement = $(ev.target);
+            
+            let dropTarget;
+
+            // 檢查拖曳目標是否為母節點 (有子節點但不是空白框)
+            if (targetElement.hasClass('node-content') && !targetElement.hasClass('empty-box')) {
+                // 找到該母節點下第一個空白的子節點
+                dropTarget = targetElement.closest('.node-wrapper').find('.empty-box').filter(function() {
+                    return !$(this).data('dropped-text');
+                }).first();
+            } else if (targetElement.hasClass('empty-box')) {
+                // 拖曳目標是空白框
+                dropTarget = targetElement;
+            }
+
+            if (dropTarget && dropTarget.length > 0) {
+                // 如果拖曳目標已經有內容，先將舊內容放回題庫
+                const oldText = dropTarget.data('dropped-text');
+                if(oldText) {
+                    $('<div>').addClass('draggable-word')
+                              .attr('draggable', 'true')
+                              .attr('ondragstart', 'drag(event)')
+                              .attr('data-text', oldText)
+                              .text(oldText)
+                              .appendTo($('#wordBank'));
+                }
+                
+                // 填入新內容
+                dropTarget.data('dropped-text', data);
+                dropTarget.empty().append(data);
+                dropTarget.addClass('has-content');
+                
+                $(draggableElement).remove();
+            }
+            
+            setTimeout(drawLinks, 100);
+            updateCheckButtonState(); // 更新按鈕狀態
+        }
+
+        // 確認答案
+        function checkAnswers() {
+            // 首先清空所有節點的批閱狀態
+            $('.empty-box').removeClass('correct incorrect');
+
+            // 遍歷所有最底層的空節點
+            $('.empty-box').each(function() {
+                const droppedText = $(this).data('dropped-text');
+                const correctText = $(this).data('correct-text');
+
+                // 檢查拖曳的單字是否與正確答案相符
+                if (droppedText && droppedText === correctText) {
+                    // 如果答案正確，標記為正確
+                    $(this).addClass('correct');
+                } else {
+                    // 答案不正確或未填寫
+                    $(this).addClass('incorrect');
+                }
+            });
+        }
+        
+        // 首次載入頁面，顯示正常模式
+        mindMapData = originalData;
+        renderAll();
+
+        // 按鈕事件監聽
+        $('#modeToggleBtn').on('click', function() {
+            if (isQuizMode) {
+                exitQuizMode();
+            } else {
+                enterQuizMode();
+            }
+        });
+
+        $('#checkAnswersBtn').on('click', checkAnswers);
+        
+        // 監聽雙擊事件，將答案放回題庫
+        $('#mindMapTree').on('dblclick', '.empty-box.has-content', function() {
+            const nodeContent = $(this);
+            const droppedText = nodeContent.data('dropped-text');
+            
+            if (droppedText) {
+                $('<div>').addClass('draggable-word')
+                          .attr('draggable', 'true')
+                          .attr('ondragstart', 'drag(event)')
+                          .attr('data-text', droppedText)
+                          .text(droppedText)
+                          .appendTo($('#wordBank'));
+            }
+
+            nodeContent.removeData('dropped-text'); // 清除資料屬性
+            nodeContent.empty().text('　'); // 清空並顯示空白字元
+            nodeContent.removeClass('correct incorrect has-content');
+            setTimeout(drawLinks, 100);
+            updateCheckButtonState(); // 更新按鈕狀態
+        });
+    });
+</script>
+
+</body>
+</html>
