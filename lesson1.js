@@ -1,4 +1,4 @@
-<script>
+
 const lessonData  = [
             {
                 text: '做人做事做長久',
@@ -84,4 +84,4 @@ const lessonData  = [
 			}
         ];
 
-</script>
+
